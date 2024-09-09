@@ -137,7 +137,7 @@ func TestGetURLsFromHTML(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := GetURLsFromHTML(tc.inputBody, tc.inputURL)
+			actual, err := getURLsFromHTML(tc.inputBody, tc.inputURL)
 			if err != nil {
 				t.Errorf("'%s' FAIL: unexpected error: %v", tc.name, err)
 				return

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func GetHTML(rawURL string) (string, error) {
+func getHTML(rawURL string) (string, error) {
 	// get body
 	resp, err := http.Get(rawURL)
 	if err != nil {

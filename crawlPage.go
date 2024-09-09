@@ -3,54 +3,77 @@ package main
 import (
 	"fmt"
 	"net/url"
+	"sync"
 )
 
-func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
+type config struct {
+	pages              map[string]int
+	baseURL            *url.URL
+	mu                 *sync.Mutex
+	concurrencyControl chan struct{}
+	wg                 *sync.WaitGroup
+}
+
+func (cfg *config) crawlPage(rawCurrentURL string) {
+
 	// Check if the current URL is on the same domain as the base URL
-	baseURL, err := url.Parse(rawBaseURL)
-	if err != nil {
-		fmt.Println("Error parsing base URL:", err)
-		return
-	}
 	currentURL, err := url.Parse(rawCurrentURL)
 	if err != nil {
 		fmt.Println("Error parsing current URL:", err)
 		return
 	}
-	if baseURL.Host != currentURL.Host {
+	if cfg.baseURL.Host != currentURL.Host {
 		return
 	}
 
 	// Normalize the current URL
-	normalizedURL, _ := NormalizeURL(currentURL.String())
-
-	// Check if we've already crawled this page
-	if count, exists := pages[normalizedURL]; exists {
-		pages[normalizedURL] = count + 1
+	normalizedURL, err := normalizeURL(currentURL.String())
+	if err != nil {
+		fmt.Println("Couldn't normalize: ", currentURL.String())
 		return
 	}
-
-	// Add the current page to the map
-	pages[normalizedURL] = 1
-
+	if !cfg.addPageVisit(normalizedURL) {
+		return
+	}
 	// Print the current URL being crawled
 	fmt.Printf("Crawling: %s\n", normalizedURL)
 
 	// Get the HTML from the current URL
-	htmlBody, err := GetHTML(rawCurrentURL)
+	htmlBody, err := getHTML(rawCurrentURL)
 	if err != nil {
 		fmt.Println("Error fetching HTML:", err)
 		return
 	}
 
 	// Get all URLs from the HTML
-	urls, err := GetURLsFromHTML(htmlBody, rawBaseURL)
+	urls, err := getURLsFromHTML(htmlBody, cfg.baseURL.String())
 	if err != nil {
 		return
 	}
 
 	// Recursively crawl each URL on the page
 	for _, url := range urls {
-		crawlPage(rawBaseURL, url, pages)
+		cfg.wg.Add(1)
+		go func() {
+			defer cfg.wg.Done()
+			cfg.concurrencyControl <- struct{}{}
+			cfg.crawlPage(url)
+			<-cfg.concurrencyControl
+		}()
 	}
+}
+
+func (cfg *config) addPageVisit(normalizedURL string) (isFirst bool) {
+
+	// Check if we've already crawled this page
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+	if count, exists := cfg.pages[normalizedURL]; exists {
+		cfg.pages[normalizedURL] = count + 1
+		return false
+	}
+
+	// Add the current page to the map
+	cfg.pages[normalizedURL] = 1
+	return true
 }

@@ -59,4 +59,7 @@ func main() {
 	wg.Wait()
 
 	fmt.Println("crawl ended")
+	printRaport(
+		pages, baseURL.String(),
+	)
 }

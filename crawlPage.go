@@ -18,7 +18,6 @@ type config struct {
 func (cfg *config) crawlPage(rawCurrentURL string) {
 	cfg.mu.Lock()
 	if cfg.maxPage <= len(cfg.pages) {
-		fmt.Println("max page limit exceeded.")
 		cfg.mu.Unlock()
 		return
 	}

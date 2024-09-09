@@ -12,9 +12,17 @@ type config struct {
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
+	maxPage            int
 }
 
 func (cfg *config) crawlPage(rawCurrentURL string) {
+	cfg.mu.Lock()
+	if cfg.maxPage <= len(cfg.pages) {
+		fmt.Println("max page limit exceeded.")
+		cfg.mu.Unlock()
+		return
+	}
+	cfg.mu.Unlock()
 
 	// Check if the current URL is on the same domain as the base URL
 	currentURL, err := url.Parse(rawCurrentURL)

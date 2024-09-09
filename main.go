@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -21,11 +20,8 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("starting crawl of: ", os.Args[1])
-	htmlBody, err := GetHTML(os.Args[1])
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
-	fmt.Println("fetch ended successfuly!")
-	fmt.Println(htmlBody)
+	var url = os.Args[1]
+	var pages = make(map[string]int)
+	crawlPage(url, url, pages)
+	fmt.Println("crawl ended")
 }
